@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Перемещение комплектов СБИС</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <div class="container" >
+            <h1>📦 Внутреннее перемещение комплектов</h1>
+            
+            <div class="warehouses-section">
+                <div class="warehouse-select">
+                    <label>Склад отправитель:</label>
+                    <select v-model="fromWarehouse" @change="validateWarehouses">
+                        <option value="">Выберите склад</option>
+                        <option v-for="wh in warehouses" :key="wh.id" :value="wh.id">
+                            {{ wh.name }}
+                        </option>
+                    </select>
+                </div>
+                
+                <div class="arrow">→</div>
+                
+                <div class="warehouse-select">
+                    <label>Склад получатель:</label>
+                    <select v-model="toWarehouse" @change="validateWarehouses">
+                        <option value="">Выберите склад</option>
+                        <option v-for="wh in warehouses" :key="wh.id" :value="wh.id">
+                            {{ wh.name }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <div v-if="error" class="error">{{ error }}</div>
+
+            <div class="selected-kits">
+                <h2>Комплекты для перемещения</h2>
+                
+                <table class="kits-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50%">№</th>
+                            <th style="width: 15%">Кол-во</th>
+                            <th style="width: 15%">Себест.</th>
+                            <th style="width: 15%">Сумма</th>
+                            <th style="width: 5%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template v-for="(kit, index) in selectedKits" :key="kit.id">
+                            <!-- Режим редактирования (выбор комплекта) -->
+                            <tr v-if="kit.isEditing" class="edit-row" @click.stop>
+                                <td>
+                                    <div class="select-search" @click.stop>
+                                        <input 
+                                            v-model="searchQuery" 
+                                            type="text" 
+                                            placeholder="Выберите комплект..."
+                                            @input="filterKits"
+                                            @focus="showAllKits(index)"
+                                            @blur="closeDropdown"
+                                            @click.stop
+                                            class="search-input"
+                                        >
+                                        <div v-if="filteredKits.length > 0 && editingRowIndex === index" class="search-dropdown" @click.stop>
+                                            <div 
+                                                v-for="kitOption in filteredKits" 
+                                                :key="kitOption.Identifier"
+                                                class="dropdown-option"
+                                                @mousedown.prevent="selectKit(kitOption, index)"
+                                            >
+                                                <strong>{{ kitOption.Name }}</strong>
+                                                <span class="option-code">{{ kitOption.Code }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>
+                                    <button @click.stop="cancelEdit(index)" class="btn-remove">✕</button>
+                                </td>
+                            </tr>
+                            
+                            <!-- Обычный режим (выбранный комплект) -->
+                            <tr v-else class="kit-row" @click="toggleKit(index)">
+                                <td>
+                                    <span class="expand-icon">{{ kit.expanded ? '▼' : '▶' }}</span>
+                                    <strong>{{ kit.name }} (розница {{ kit.price.toFixed(2) }} ₽)</strong>
+                                </td>
+                                <td>
+                                    <input 
+                                        type="number" 
+                                        v-model.number="kit.quantity" 
+                                        min="1"
+                                        class="quantity-input"
+                                        @click.stop
+                                    >
+                                </td>
+                                <td>{{ kit.cost.toFixed(2) }} ₽</td>
+                                <td>{{ getKitSum(kit) }} ₽</td>
+                                <td>
+                                    <button @click.stop="removeKit(index)" class="btn-remove">✕</button>
+                                </td>
+                            </tr>
+                            
+                            <!-- Развернутый состав комплекта -->
+                            <tr v-if="kit.expanded && !kit.isEditing" v-for="(item, itemIndex) in kit.items" 
+                                :key="`${kit.id}-${itemIndex}`" class="kit-item-row">
+                                <td class="item-name">↳ {{ item.Label }} <br> <strong><small>розница {{ item.Cost.toFixed(2) }} ₽</small></small></strong></td>
+                                <td>{{ item.BaseQty }} {{ item.BaseMeasureUnitParsed.base.abbr }}</td>
+                                <td>{{ item.NomenclatureInfo === 'Product' ? (item.SumPlannedCost || '0') : item.PriceCost }} ₽</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </template>
+                        
+                        <!-- Кнопка добавления -->
+                        <tr class="add-row" @click="addNewRow">
+                            <td colspan="5">
+                                <span class="add-icon">+ Добавить комплект</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot v-if="selectedKits.length > 0 && selectedKits.some(k => !k.isEditing)">
+                        <tr>
+                            <td colspan="3"><strong>Итого:</strong></td>
+                            <td colspan="2"><strong>{{ totalSum }} ₽</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="actions">
+                <button 
+                    @click="createDocument" 
+                    :disabled="!canCreateDocument || creating"
+                    class="btn-primary"
+                >
+                    {{ creating ? 'Создание...' : '✓ Создать документ перемещения' }}
+                </button>
+            </div>
+
+            <div v-if="successMessage" class="success">{{ successMessage }}</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

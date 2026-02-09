@@ -1,0 +1,43 @@
+; Пример дополнительной конфигурации PHP
+; Для использования переименуйте в php.ini и раскомментируйте в Dockerfile
+
+[PHP]
+; Максимальное время выполнения скрипта (секунды)
+max_execution_time = 300
+
+; Максимальный размер POST данных
+post_max_size = 50M
+
+; Максимальный размер загружаемого файла
+upload_max_filesize = 50M
+
+; Лимит памяти
+memory_limit = 256M
+
+; Отображение ошибок (для разработки)
+display_errors = On
+display_startup_errors = On
+error_reporting = E_ALL
+
+; Для production установите:
+; display_errors = Off
+; display_startup_errors = Off
+; error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT
+
+; Логирование ошибок
+log_errors = On
+error_log = /var/log/php-fpm/error.log
+
+; Часовой пояс
+date.timezone = Europe/Moscow
+
+; Кодировка по умолчанию
+default_charset = "UTF-8"
+
+; Настройки сессий
+session.save_handler = files
+session.save_path = "/tmp"
+session.gc_maxlifetime = 1440
+
+; Безопасность
+expose_php = Off

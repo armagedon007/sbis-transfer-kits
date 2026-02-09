@@ -1,0 +1,26 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Документация
+README.md
+
+# Тестовые файлы
+test*.php
+test*.json
+t*.php
+*.csv
+*.xml
+
+# Временные файлы
+*.log
+*.tmp
+.DS_Store
+
+# Учетные данные
+креды.txt
