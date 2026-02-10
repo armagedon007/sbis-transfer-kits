@@ -38,12 +38,13 @@ class SbisService
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+        $answer = json_decode($response, true);
 
         if ($httpCode !== 200) {
-            throw new Exception("HTTP Error: $httpCode");
+            throw new Exception("HTTP Error: $httpCode" . PHP_EOL . ($answer['error']['message'] ?? ''));
         }
 
-        return json_decode($response, true);
+        return $answer;
     }
 
     public function getWarehousesFromRetailApi()
@@ -53,8 +54,6 @@ class SbisService
 
         try {
             $data = $this->request($url);
-            var_dump($data);
-            die;
 
             $warehouses = [];
             foreach ($data['points'] ?? [] as $point) {
@@ -256,18 +255,18 @@ class SbisService
                             'd' => [],
                             's' => [],
                             '_type' => 'record',
-                            'f' => 1
-                        ]
+                            'f' => 1,
+                        ],
                     ],
                     's' => [
                         [
                             't' => 'Запись',
                             'n' => 'CostOption'
-                        ]
+                        ],
                     ],
                     '_type' => 'record',
-                    'f' => 0
-                ]
+                    'f' => 0,
+                ],
             ],
             'id' => 1
         ];
@@ -292,12 +291,20 @@ class SbisService
                                 if ($col['n'] === 'NomenclatureInfo') {
                                     if (($product[$ind]['d'][3]['d'][3] ?? null) === 1) {
                                         $item[$col['n']] = 'Service';
-                                    } else {
+                                    } elseif (($product[$ind]['d'][3]['d'][3] ?? null) === 0) {
                                         $item[$col['n']] = 'Product';
+                                    } else {
+                                        $item[$col['n']] = 'Other';
                                     }
                                 }
                             }
                             if ($item['Group']) {
+                                $item['nomNumber'] = '';
+                                if ($item['NomenclatureInfo'] === 'Product') {
+                                    $url = $this->config['sbis']['api_url'] . '/retail/nomenclature/' . $item['Nom'];
+                                    $data = $this->request($url);
+                                    $item['nomNumber'] = $data['nomNumber'] ?? '';
+                                }
                                 $products[] = $item;
                             }
                         }
@@ -585,6 +592,7 @@ class SbisService
         $ipData = $this->config['ip'];
         $fileName = "ON_Movement_{$ipData['inn']}_{$ipData['inn']}_" . date('Ymd') . "_{$guid}.xml";
         $xmlData = $this->createXmlDoc($fileName, $ipData, $fromWarehouse, $toWarehouse, $kits);
+        file_put_contents('doc.xml', $xmlData);
         $document = [
             'jsonrpc' => '2.0',
             'method' => 'СБИС.ЗаписатьДокумент',
@@ -723,7 +731,7 @@ class SbisService
                 }
                 $product = $xml->createElement('СтрТабл');
                 $product->setAttribute('ЕдИзм', $item['BaseMeasureUnitParsed']['base']['abbr']);
-                $product->setAttribute('Идентификатор', $item['nom']);
+                $product->setAttribute('Идентификатор', $item['nomNumber']);
                 $product->setAttribute('Кол_во', $item['BaseQty'] * $kit['quantity']);
                 $product->setAttribute('Название', htmlspecialchars($item['Label'], ENT_XML1, 'UTF-8'));
                 $product->setAttribute('ПорНомер', $itemNumber);
@@ -762,7 +770,6 @@ class SbisService
         $receiver->appendChild($receiverWarehouse);
 
         $receiverOrg = $xml->createElement('СвФЛ');
-        $receiverOrg->setAttribute('ИНН', $inn);
         $receiverOrg->setAttribute('ИНН', $ipData['inn']);
         $receiverOrg->setAttribute('Имя', $ipData['name']);
         $receiverOrg->setAttribute('Отчество', $ipData['patronymic']);
