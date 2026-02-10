@@ -112,7 +112,11 @@
                             <!-- Развернутый состав комплекта -->
                             <tr v-if="kit.expanded && !kit.isEditing" v-for="(item, itemIndex) in kit.items" 
                                 :key="`${kit.id}-${itemIndex}`" class="kit-item-row">
-                                <td class="item-name">↳ {{ item.Label }} <br> <strong><small>розница {{ item.Cost.toFixed(2) }} ₽</small></small></strong></td>
+                                <td class="item-name">
+                                    ↳ <a :href="'https://ret.sbis.ru/page/nomenclature/' + item.Nomenclature" target="_blank">{{ item.Label }}</a>
+                                    <br>
+                                    <strong><small>розница {{ item.Cost.toFixed(2) }} ₽</small></strong>
+                                </td>
                                 <td>{{ item.BaseQty }} {{ item.BaseMeasureUnitParsed.base.abbr }}</td>
                                 <td>{{ item.NomenclatureInfo === 'Product' ? (item.SumPlannedCost || '0') : item.PriceCost }} ₽</td>
                                 <td></td>
