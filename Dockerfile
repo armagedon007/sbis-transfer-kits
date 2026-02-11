@@ -1,3 +1,16 @@
+FROM node:22-alpine AS node-builder
+
+WORKDIR /app
+
+# 1. Копируем только файлы зависимостей — кэширование
+COPY package.json ./
+RUN npm install
+
+# 2. Копируем исходники фронтенда и собираем
+COPY frontend ./frontend
+COPY vite.config.js ./
+RUN npm run build
+
 FROM php:8.4-fpm
 
 # Установка системных зависимостей
@@ -5,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     nginx \
     libxml2-dev \
     libcurl4-openssl-dev \
-    libonig-dev \
+    libonig-dev mc \
     && rm -rf /var/lib/apt/lists/*
 
 # Установка PHP расширений
@@ -20,9 +33,8 @@ COPY default.conf /etc/nginx/sites-available/default
 # Создание директории для логов
 RUN mkdir -p /var/log/nginx /var/log/php-fpm
 
-# Копирование приложения
-COPY backend /var/www/html/backend
-COPY frontend /var/www/html/frontend
+# 7. Копируем собранный фронтенд из node-builder
+COPY --from=node-builder /app/dist ./dist
 
 # Установка прав доступа
 RUN chown -R www-data:www-data /var/www/html \

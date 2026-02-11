@@ -23,3 +23,6 @@ services:
       - IP_SURNAME=${IP_SURNAME}
       - IP_PATRONYMIC=${IP_PATRONYMIC}
       - IP_INN=${IP_INN}
+
+volumes:
+  node_modules:

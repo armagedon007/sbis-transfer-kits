@@ -1,0 +1,12 @@
+{
+  "name": "sbis-app",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "watch": "vite build --watch"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
