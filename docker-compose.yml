@@ -8,7 +8,6 @@ services:
       - "127.0.0.1:${APP_PORT:-8000}:8000"
     volumes:
       - ./backend:/var/www/html/backend
-      - ./frontend:/var/www/html/frontend
       - ./nginx.conf:/etc/nginx/nginx.conf
       - ./default.conf:/etc/nginx/sites-available/default
     restart: unless-stopped
