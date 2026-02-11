@@ -22,10 +22,24 @@ createApp({
 
     computed: {
         canCreateDocument() {
-            return this.fromWarehouse &&
-                this.toWarehouse &&
-                this.fromWarehouse !== this.toWarehouse &&
-                this.selectedKits.length > 0;
+            // Проверяем, что выбраны склады и они разные
+            if (!this.fromWarehouse || !this.toWarehouse || this.fromWarehouse === this.toWarehouse) {
+                return false;
+            }
+            
+            // Проверяем, что есть хотя бы один комплект
+            if (this.selectedKits.length === 0) {
+                return false;
+            }
+            
+            // Проверяем, что есть хотя бы один товар с отмеченным чекбоксом
+            const hasSelectedProducts = this.selectedKits.some(kit => 
+                !kit.isEditing && kit.items && kit.items.some(item => 
+                    item.NomenclatureInfo === 'Product' && item.included === true
+                )
+            );
+            
+            return hasSelectedProducts;
         },
 
         totalSum() {
@@ -182,6 +196,12 @@ createApp({
                 const data = await response.json();
 
                 const items = data.success ? data.data : [];
+                
+                // Добавляем флаг included для каждого товара (по умолчанию true)
+                items.forEach(item => {
+                    item.included = true;
+                });
+                
                 const totalCost = items.reduce((sum, item) => sum + (item.NomenclatureInfo === 'Product' ? item.SumPlannedCost : item.PriceCost), 0);
 
                 this.selectedKits[index].name = kit.Name;
@@ -230,6 +250,14 @@ createApp({
             this.successMessage = '';
 
             try {
+                // Фильтруем комплекты - оставляем только товары (не услуги) с included = true
+                const filteredKits = this.selectedKits.map(kit => ({
+                    ...kit,
+                    items: kit.items.filter(item => 
+                        item.NomenclatureInfo === 'Product' && item.included === true
+                    )
+                }));
+
                 const response = await fetch(`${API_BASE}/documents.php`, {
                     method: 'POST',
                     headers: {
@@ -238,7 +266,7 @@ createApp({
                     body: JSON.stringify({
                         fromWarehouse: this.warehouses.find(w => w.id === this.fromWarehouse),
                         toWarehouse: this.warehouses.find(w => w.id === this.toWarehouse),
-                        kits: this.selectedKits,
+                        kits: filteredKits,
                     }),
                 });
 

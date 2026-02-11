@@ -299,12 +299,6 @@ class SbisService
                                 }
                             }
                             if ($item['Group']) {
-                                $item['nomNumber'] = '';
-                                if ($item['NomenclatureInfo'] === 'Product') {
-                                    $url = $this->config['sbis']['api_url'] . '/retail/nomenclature/' . $item['Nom'];
-                                    $data = $this->request($url);
-                                    $item['nomNumber'] = $data['nomNumber'] ?? '';
-                                }
                                 $products[] = $item;
                             }
                         }
@@ -592,7 +586,6 @@ class SbisService
         $ipData = $this->config['ip'];
         $fileName = "ON_Movement_{$ipData['inn']}_{$ipData['inn']}_" . date('Ymd') . "_{$guid}.xml";
         $xmlData = $this->createXmlDoc($fileName, $ipData, $fromWarehouse, $toWarehouse, $kits);
-        file_put_contents('doc.xml', $xmlData);
         $document = [
             'jsonrpc' => '2.0',
             'method' => 'СБИС.ЗаписатьДокумент',
@@ -729,14 +722,22 @@ class SbisService
                 if ($item['NomenclatureInfo'] !== 'Product') {
                     continue;
                 }
+                $nomNumber = '';
+                try {
+                    $url = $this->config['sbis']['api_url'] . '/retail/nomenclature/' . $item['Nom'];
+                    $data = $this->request($url);
+                    $nomNumber = $data['nomNumber'] ?? '';
+                } catch (Throwable $throwable) {
+                    //
+                }
                 $product = $xml->createElement('СтрТабл');
                 $product->setAttribute('ЕдИзм', $item['BaseMeasureUnitParsed']['base']['abbr']);
-                $product->setAttribute('Идентификатор', $item['nomNumber']);
+                $product->setAttribute('Идентификатор', $nomNumber);
                 $product->setAttribute('Кол_во', $item['BaseQty'] * $kit['quantity']);
                 $product->setAttribute('Название', htmlspecialchars($item['Label'], ENT_XML1, 'UTF-8'));
                 $product->setAttribute('ПорНомер', $itemNumber);
-                $product->setAttribute('Сумма', number_format($item['SumPlannedCost'] * $kit['quantity'], 2, '.', ''));
-                $product->setAttribute('Цена', number_format($item['SumPlannedCost'], 2, '.', ''));
+                $product->setAttribute('Сумма', number_format(($item['SumPlannedCost'] ?? 0) * $kit['quantity'], 2, '.', ''));
+                $product->setAttribute('Цена', number_format($item['SumPlannedCost'] ?? 0, 2, '.', ''));
                 $table->appendChild($product);
                 $itemNumber++;
             }

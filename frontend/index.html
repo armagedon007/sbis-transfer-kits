@@ -113,6 +113,13 @@
                             <tr v-if="kit.expanded && !kit.isEditing" v-for="(item, itemIndex) in kit.items" 
                                 :key="`${kit.id}-${itemIndex}`" class="kit-item-row">
                                 <td class="item-name">
+                                    <input 
+                                        v-if="item.NomenclatureInfo === 'Product'" 
+                                        type="checkbox" 
+                                        v-model="item.included"
+                                        @click.stop
+                                        style="margin-right: 5px;"
+                                    >
                                     ↳ <a :href="'https://ret.sbis.ru/page/nomenclature/' + item.Nomenclature" target="_blank">{{ item.Label }}</a>
                                     <br>
                                     <strong><small>розница {{ item.Cost.toFixed(2) }} ₽</small></strong>
