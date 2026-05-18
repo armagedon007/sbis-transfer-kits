@@ -15,9 +15,10 @@ $config = require __DIR__ . '/../config.php';
 try {
     $pageSize = $_GET['pageSize'] ?? 1000;
     $position = $_GET['position'] ?? 0;
+    $folderId = 10408;
     
     $service = new SbisService($config);
-    $kits = $service->getKits($pageSize, $position);
+    $kits = $service->getKits($folderId, $pageSize, $position);
     
     echo json_encode([
         'success' => true,
