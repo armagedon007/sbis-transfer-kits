@@ -270,28 +270,31 @@ class SbisService
             ],
             'id' => 1
         ];
-
+        
         $result = $this->request(
             $this->config['sbis']['service_url'],
             'POST',
             json_encode($request, JSON_UNESCAPED_UNICODE),
             true
         );
-
         $products = [];
         foreach ($result['result']['s'] ?? [] as $index => $column) {
             if ($column['n'] === 'CardExtData') {
                 foreach ($result['result']['d'][$index]['d'] ?? [] as $cardExtData) {
                     if (($cardExtData['s'][0]['n'] ?? '') === 'ModifiersData') {
                         $columns = $cardExtData['d'][0]['s'] ?? [];
+                        $indexTypeObject = 3;
                         foreach ($cardExtData['d'][0]['d'] ?? [] as $product) {
                             $item = [];
                             foreach ($columns as $ind => $col) {
                                 $item[$col['n']] = $product[$ind];
                                 if ($col['n'] === 'NomenclatureInfo') {
-                                    if (($product[$ind]['d'][3]['d'][3] ?? null) === 1) {
+                                    if ($product[$ind]['s'] ?? []) {
+                                        $indexTypeObject = array_search('TypeObject', array_column($product[$ind]['s'] ?? [], 'n'));
+                                    }
+                                    if (($product[$ind]['d'][$indexTypeObject]['d'][3] ?? null) === 1) {
                                         $item[$col['n']] = 'Service';
-                                    } elseif (($product[$ind]['d'][3]['d'][3] ?? null) === 0) {
+                                    } elseif (($product[$ind]['d'][$indexTypeObject]['d'][3] ?? null) === 0) {
                                         $item[$col['n']] = 'Product';
                                     } else {
                                         $item[$col['n']] = 'Other';
@@ -310,271 +313,276 @@ class SbisService
         return $products;
     }
 
-    public function getKits()
+    public function getKits($folderId, $count, $page = 0)
     {
-        $count = 100;
-        $folderId = 10408;
-        // Получаем склады через JSON-RPC метод СБИС
-        $request = [
-            'jsonrpc' => '2.0',
-            'protocol' => 7,
-            'method' => 'Nomenclature.List',
-            'params' => [
-                'Фильтр' => [
-                    'd' => [
-                        null,
-                        null,
-                        true,
-                        null,
-                        null,
-                        null,
-                        true,
-                        [
-                            'd' => [
-                                'desktop'
-                            ],
-                            's' => [
-                                [
-                                    't' => 'Строка',
-                                    'n' => 'Device'
-                                ]
-                            ],
-                            '_type' => 'record',
-                            'f' => 1
-                        ],
-                        null,
-                        $folderId,
-                        $folderId,
-                        $folderId,
-                        0,
-                        true,
-                        false,
-                        1,
-                        null,
-                        true,
-                        null,
-                        null,
-                        [
-                            'Catalog'
-                        ],
-                        [
-                            'd' => [
-                                true
-                            ],
-                            's' => [
-                                [
-                                    't' => 'Логическое',
-                                    'n' => 'HideConditionalProduct'
-                                ]
-                            ],
-                            '_type' => 'record',
-                            'f' => 2
-                        ],
-                        null,
-                        true,
-                        null,
-                        null,
-                        null
-                    ],
-                    's' => [
-                        [
-                            't' => 'Строка',
-                            'n' => 'Archival'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'Balance'
-                        ],
-                        [
-                            't' => 'Логическое',
-                            'n' => 'BalanceEmptyFolder'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'BalanceForOrganization'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'BarcodeExist'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'Category'
-                        ],
-                        [
-                            't' => 'Логическое',
-                            'n' => 'CheckFolderExists'
-                        ],
-                        [
-                            't' => 'Запись',
-                            'n' => 'ConfigurationOption'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'Envd'
-                        ],
-                        [
-                            't' => 'Число целое',
-                            'n' => 'FolderCompilation'
-                        ],
-                        [
-                            't' => 'Число целое',
-                            'n' => 'FolderUI'
-                        ],
-                        [
-                            't' => 'Число целое',
-                            'n' => 'GetColumnsFromSettings'
-                        ],
-                        [
-                            't' => 'Число целое',
-                            'n' => 'GetPath'
-                        ],
-                        [
-                            't' => 'Логическое',
-                            'n' => 'GetRights'
-                        ],
-                        [
-                            't' => 'Логическое',
-                            'n' => 'HideEmptyFolder'
-                        ],
-                        [
-                            't' => 'Число целое',
-                            'n' => 'Link'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'MarkColor'
-                        ],
-                        [
-                            't' => 'Логическое',
-                            'n' => 'NewConfiguration'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'NodeType'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'PublicationSaleState'
-                        ],
-                        [
-                            't' => [
-                                'n' => 'Массив',
-                                't' => 'Строка'
-                            ],
-                            'n' => 'ScopesAreas'
-                        ],
-                        [
-                            't' => 'Запись',
-                            'n' => 'ServiceOption'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'StateSystem'
-                        ],
-                        [
-                            't' => 'Логическое',
-                            'n' => 'TranslitSearchString'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'Type'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'Vat'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'Warehouse'
-                        ]
-                    ],
-                    '_type' => 'record',
-                    'f' => 0
-                ],
-                'Сортировка' => [
-                    'd' => [
-                        [
-                            true,
-                            'Custom',
-                            false
-                        ]
-                    ],
-                    's' => [
-                        [
-                            't' => 'Логическое',
-                            'n' => 'l'
-                        ],
-                        [
-                            't' => 'Строка',
-                            'n' => 'n'
-                        ],
-                        [
-                            't' => 'Логическое',
-                            'n' => 'o'
-                        ]
-                    ],
-                    '_type' => 'recordset',
-                    'f' => 0
-                ],
-                'Навигация' => [
-                    'd' => [
-                        true,
-                        $count,
-                        0
-                    ],
-                    's' => [
-                        [
-                            't' => 'Логическое',
-                            'n' => 'ЕстьЕще'
-                        ],
-                        [
-                            't' => 'Число целое',
-                            'n' => 'РазмерСтраницы'
-                        ],
-                        [
-                            't' => 'Число целое',
-                            'n' => 'Страница'
-                        ]
-                    ],
-                    '_type' => 'record',
-                    'f' => 0
-                ],
-                'ДопПоля' => [
-                    'Name',
-                    'Identifier',
-                    'Code',
-                    'TypeObject',
-                ],
-            ],
-            'id' => 1
-        ];
-
-        $result = $this->request(
-            $this->config['sbis']['service_url'],
-            'POST',
-            json_encode($request, JSON_UNESCAPED_UNICODE),
-            true
-        );
-
-        $columns = $result['result']['s'] ?? [];
-
         $kits = [];
-        foreach ($result['result']['d'] ?? [] as $kit) {
-            $item = [];
-            foreach ($columns as $index => $column) {
-                $item[$column['n']] = $kit[$index];
-                if ($column['n'] === 'TypeObject') {
-                    if ($kit[$index]['d'][3] === 9) {
-                        $item[$column['n']] = 'Kit';
-                    } else {
-                        $item[$column['n']] = 'Product';
+        $nextPage = true;
+        while($nextPage) {
+            // Получаем наборы через JSON-RPC метод СБИС
+            $request = [
+                'jsonrpc' => '2.0',
+                'protocol' => 7,
+                'method' => 'Nomenclature.List',
+                'params' => [
+                    'Фильтр' => [
+                        'd' => [
+                            null,
+                            null,
+                            true,
+                            null,
+                            null,
+                            null,
+                            true,
+                            [
+                                'd' => [
+                                    'desktop'
+                                ],
+                                's' => [
+                                    [
+                                        't' => 'Строка',
+                                        'n' => 'Device'
+                                    ]
+                                ],
+                                '_type' => 'record',
+                                'f' => 1
+                            ],
+                            null,
+                            $folderId,
+                            $folderId,
+                            $folderId,
+                            0,
+                            true,
+                            false,
+                            1,
+                            null,
+                            true,
+                            null,
+                            null,
+                            [
+                                'Catalog'
+                            ],
+                            [
+                                'd' => [
+                                    true
+                                ],
+                                's' => [
+                                    [
+                                        't' => 'Логическое',
+                                        'n' => 'HideConditionalProduct'
+                                    ]
+                                ],
+                                '_type' => 'record',
+                                'f' => 2
+                            ],
+                            null,
+                            true,
+                            null,
+                            null,
+                            null
+                        ],
+                        's' => [
+                            [
+                                't' => 'Строка',
+                                'n' => 'Archival'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'Balance'
+                            ],
+                            [
+                                't' => 'Логическое',
+                                'n' => 'BalanceEmptyFolder'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'BalanceForOrganization'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'BarcodeExist'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'Category'
+                            ],
+                            [
+                                't' => 'Логическое',
+                                'n' => 'CheckFolderExists'
+                            ],
+                            [
+                                't' => 'Запись',
+                                'n' => 'ConfigurationOption'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'Envd'
+                            ],
+                            [
+                                't' => 'Число целое',
+                                'n' => 'FolderCompilation'
+                            ],
+                            [
+                                't' => 'Число целое',
+                                'n' => 'FolderUI'
+                            ],
+                            [
+                                't' => 'Число целое',
+                                'n' => 'GetColumnsFromSettings'
+                            ],
+                            [
+                                't' => 'Число целое',
+                                'n' => 'GetPath'
+                            ],
+                            [
+                                't' => 'Логическое',
+                                'n' => 'GetRights'
+                            ],
+                            [
+                                't' => 'Логическое',
+                                'n' => 'HideEmptyFolder'
+                            ],
+                            [
+                                't' => 'Число целое',
+                                'n' => 'Link'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'MarkColor'
+                            ],
+                            [
+                                't' => 'Логическое',
+                                'n' => 'NewConfiguration'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'NodeType'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'PublicationSaleState'
+                            ],
+                            [
+                                't' => [
+                                    'n' => 'Массив',
+                                    't' => 'Строка'
+                                ],
+                                'n' => 'ScopesAreas'
+                            ],
+                            [
+                                't' => 'Запись',
+                                'n' => 'ServiceOption'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'StateSystem'
+                            ],
+                            [
+                                't' => 'Логическое',
+                                'n' => 'TranslitSearchString'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'Type'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'Vat'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'Warehouse'
+                            ]
+                        ],
+                        '_type' => 'record',
+                        'f' => 0
+                    ],
+                    'Сортировка' => [
+                        'd' => [
+                            [
+                                true,
+                                'Custom',
+                                false
+                            ]
+                        ],
+                        's' => [
+                            [
+                                't' => 'Логическое',
+                                'n' => 'l'
+                            ],
+                            [
+                                't' => 'Строка',
+                                'n' => 'n'
+                            ],
+                            [
+                                't' => 'Логическое',
+                                'n' => 'o'
+                            ]
+                        ],
+                        '_type' => 'recordset',
+                        'f' => 0
+                    ],
+                    'Навигация' => [
+                        'd' => [
+                            true,
+                            $count,
+                            $page,
+                        ],
+                        's' => [
+                            [
+                                't' => 'Логическое',
+                                'n' => 'ЕстьЕще'
+                            ],
+                            [
+                                't' => 'Число целое',
+                                'n' => 'РазмерСтраницы'
+                            ],
+                            [
+                                't' => 'Число целое',
+                                'n' => 'Страница'
+                            ]
+                        ],
+                        '_type' => 'record',
+                        'f' => 0
+                    ],
+                    'ДопПоля' => [
+                        'Name',
+                        'Identifier',
+                        'Code',
+                        'TypeObject',
+                    ],
+                ],
+                'id' => 1
+            ];
+
+            $result = $this->request(
+                $this->config['sbis']['service_url'],
+                'POST',
+                json_encode($request, JSON_UNESCAPED_UNICODE),
+                true
+            );
+
+            $columns = $result['result']['s'] ?? [];
+            $data = $result['result']['d'] ?? [];
+            $nextPage = $result['result']['n'] ?? false;
+
+            foreach ($data as $kit) {
+                $item = [];
+                foreach ($columns as $index => $column) {
+                    $item[$column['n']] = $kit[$index];
+                    if ($column['n'] === 'TypeObject') {
+                        if ($kit[$index]['d'][3] === 9) {
+                            $item[$column['n']] = 'Kit';
+                        } else {
+                            $item[$column['n']] = 'Product';
+                        }
                     }
                 }
+                if ($item['TypeObject'] === 'Kit') {
+                    $kits[] = $item;
+                }
             }
-            if ($item['TypeObject'] === 'Kit') {
-                $kits[] = $item;
-            }
+            $page++;
+            sleep(1);
         }
 
         return $kits;
